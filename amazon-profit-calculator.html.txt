@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亚马逊利润计算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Warm Neutrals & Professional Blue -->
+    <!-- Application Structure Plan: A task-oriented, two-column SPA. Left column for user inputs (product price, costs), grouped logically. Right column for dynamic outputs: key metrics (profit, margin, ROI) and a Chart.js donut for visual cost breakdown. This structure is chosen for optimal usability, providing immediate, real-time feedback to the user as they input data, directly linking cause (input) and effect (result) without navigation. -->
+    <!-- Visualization & Content Choices: Report Info: User-entered financial data -> Goal: Calculation & Inform -> Viz/Method: HTML Form & Dynamic Text -> Interaction: Real-time calculation on input -> Justification: Provides immediate, clear feedback which is crucial for a calculator tool. | Report Info: Calculated cost components -> Goal: Compare/Organize -> Viz/Method: Chart.js Doughnut Chart -> Interaction: Dynamic update with inputs, hover tooltips -> Justification: Visually communicates the proportion of each cost, making it easy to identify the largest cost drivers at a glance. -> Library/Method: Chart.js/Canvas. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+        }
+        .input-group {
+            position: relative;
+        }
+        .input-group span {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            pointer-events: none;
+        }
+        .input-group input {
+            padding-left: 32px;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <div class="container mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-stone-900">亚马逊利润计算器</h1>
+            <p class="mt-2 text-stone-600">输入您的产品数据，即时获取详细的利润分析。</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+
+            <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
+                <form id="profit-form" class="space-y-6">
+                    <div>
+                        <h2 class="text-xl font-semibold border-b pb-2 mb-4 text-stone-800">核心信息</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                             <div>
+                                <label for="selling-price" class="block text-sm font-medium text-stone-700">商品售价 (CNY)</label>
+                                <div class="mt-1 input-group">
+                                    <span>¥</span>
+                                    <input type="number" id="selling-price" class="w-full p-2 border border-stone-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="例如: 199.99">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="exchange-rate" class="block text-sm font-medium text-stone-700">美元汇率 (USD to CNY)</label>
+                                <div class="mt-1 input-group">
+                                    <span>¥</span>
+                                    <input type="number" id="exchange-rate" value="7.25" class="w-full p-2 border border-stone-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="例如: 7.25">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h2 class="text-xl font-semibold border-b pb-2 mb-4 text-stone-800">成本与费用</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="product-cost" class="block text-sm font-medium text-stone-700">采购成本 (CNY)</label>
+                                <div class="mt-1 input-group">
+                                    <span>¥</span>
+                                    <input type="number" id="product-cost" class="w-full p-2 border border-stone-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="例如: 50">
+                                </div>
+                            </div>
+                             <div>
+                                <label for="first-leg-shipping" class="block text-sm font-medium text-stone-700">头程运费 (USD)</label>
+                                <div class="mt-1 input-group">
+                                    <span>$</span>
+                                    <input type="number" id="first-leg-shipping" class="w-full p-2 border border-stone-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="例如: 2.5">
+                                </div>
+                            </div>
+                             <div>
+                                <label for="referral-fee" class="block text-sm font-medium text-stone-700">平台佣金 (%)</label>
+                                <div class="mt-1 relative">
+                                    <input type="number" id="referral-fee" value="15" class="w-full p-2 border border-stone-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition pr-8" placeholder="通常为 8-15">
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500">%</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="fba-fee" class="block text-sm font-medium text-stone-700">FBA 配送费 (USD)</label>
+                                <div class="mt-1 input-group">
+                                    <span>$</span>
+                                    <input type="number" id="fba-fee" class="w-full p-2 border border-stone-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="例如: 3.5">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="ad-cost" class="block text-sm font-medium text-stone-700">广告花费 (USD, 单个订单)</label>
+                                <div class="mt-1 input-group">
+                                    <span>$</span>
+                                    <input type="number" id="ad-cost" class="w-full p-2 border border-stone-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="例如: 1.5">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="other-cost" class="block text-sm font-medium text-stone-700">其他费用 (USD, 仓储/退货)</label>
+                                <div class="mt-1 input-group">
+                                    <span>$</span>
+                                    <input type="number" id="other-cost" class="w-full p-2 border border-stone-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="例如: 0.5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="reset-button" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105">
+                        清空重置
+                    </button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-3 bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-xl font-semibold border-b pb-2 mb-4 text-stone-800">利润分析报告</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 text-center">
+                    <div class="bg-blue-50 p-4 rounded-xl">
+                        <h3 class="text-sm font-medium text-blue-800">净利润</h3>
+                        <p id="net-profit" class="text-3xl font-bold text-blue-600 mt-1">¥0.00</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-xl">
+                        <h3 class="text-sm font-medium text-green-800">利润率</h3>
+                        <p id="profit-margin" class="text-3xl font-bold text-green-600 mt-1">0.00%</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-xl">
+                        <h3 class="text-sm font-medium text-purple-800">投资回报率 (ROI)</h3>
+                        <p id="roi" class="text-3xl font-bold text-purple-600 mt-1">0.00%</p>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-lg font-semibold text-center mb-4 text-stone-700">成本构成 (CNY)</h3>
+                    <div class="chart-container relative h-64 md:h-80 w-full max-w-sm mx-auto">
+                        <canvas id="cost-breakdown-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sellingPriceEl = document.getElementById('selling-price');
+            const exchangeRateEl = document.getElementById('exchange-rate');
+            const productCostEl = document.getElementById('product-cost');
+            const firstLegShippingEl = document.getElementById('first-leg-shipping');
+            const referralFeeEl = document.getElementById('referral-fee');
+            const fbaFeeEl = document.getElementById('fba-fee');
+            const adCostEl = document.getElementById('ad-cost');
+            const otherCostEl = document.getElementById('other-cost');
+
+            const netProfitEl = document.getElementById('net-profit');
+            const profitMarginEl = document.getElementById('profit-margin');
+            const roiEl = document.getElementById('roi');
+            const form = document.getElementById('profit-form');
+            const resetButton = document.getElementById('reset-button');
+            
+            const ctx = document.getElementById('cost-breakdown-chart').getContext('2d');
+            let costChart;
+
+            const chartColors = {
+                product: 'rgba(255, 99, 132, 0.8)',
+                shipping: 'rgba(255, 159, 64, 0.8)',
+                referral: 'rgba(54, 162, 235, 0.8)',
+                fba: 'rgba(255, 206, 86, 0.8)',
+                ad: 'rgba(75, 192, 192, 0.8)',
+                other: 'rgba(153, 102, 255, 0.8)'
+            };
+
+            function createChart() {
+                if (costChart) {
+                    costChart.destroy();
+                }
+                costChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['采购成本', '头程运费', '平台佣金', 'FBA费用', '广告花费', '其他费用'],
+                        datasets: [{
+                            label: '成本构成 (CNY)',
+                            data: [0, 0, 0, 0, 0, 0],
+                            backgroundColor: Object.values(chartColors),
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY' }).format(context.parsed);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '60%'
+                    }
+                });
+            }
+
+            function calculateProfit() {
+                const sellingPrice = parseFloat(sellingPriceEl.value) || 0;
+                const exchangeRate = parseFloat(exchangeRateEl.value) || 7.25;
+
+                const productCost = parseFloat(productCostEl.value) || 0;
+                const firstLegShippingUSD = parseFloat(firstLegShippingEl.value) || 0;
+                const referralFeePercent = parseFloat(referralFeeEl.value) || 0;
+                const fbaFeeUSD = parseFloat(fbaFeeEl.value) || 0;
+                const adCostUSD = parseFloat(adCostEl.value) || 0;
+                const otherCostUSD = parseFloat(otherCostEl.value) || 0;
+
+                const firstLegShippingCNY = firstLegShippingUSD * exchangeRate;
+                const fbaFeeCNY = fbaFeeUSD * exchangeRate;
+                const adCostCNY = adCostUSD * exchangeRate;
+                const otherCostCNY = otherCostUSD * exchangeRate;
+
+                const referralFee = sellingPrice * (referralFeePercent / 100);
+                const totalCost = productCost + firstLegShippingCNY + referralFee + fbaFeeCNY + adCostCNY + otherCostCNY;
+                const netProfit = sellingPrice - totalCost;
+
+                const profitMargin = sellingPrice > 0 ? (netProfit / sellingPrice) * 100 : 0;
+                const roi = totalCost > 0 ? (netProfit / totalCost) * 100 : 0;
+
+                netProfitEl.textContent = `¥${netProfit.toFixed(2)}`;
+                profitMarginEl.textContent = `${profitMargin.toFixed(2)}%`;
+                roiEl.textContent = `${roi.toFixed(2)}%`;
+
+                netProfitEl.classList.toggle('text-red-600', netProfit < 0);
+                netProfitEl.classList.toggle('text-blue-600', netProfit >= 0);
+                
+                profitMarginEl.classList.toggle('text-red-600', profitMargin < 0);
+                profitMarginEl.classList.toggle('text-green-600', profitMargin >= 0);
+
+                roiEl.classList.toggle('text-red-600', roi < 0);
+                roiEl.classList.toggle('text-purple-600', roi >= 0);
+
+                updateChartData([productCost, firstLegShippingCNY, referralFee, fbaFeeCNY, adCostCNY, otherCostCNY]);
+            }
+
+            function updateChartData(data) {
+                if (costChart) {
+                    costChart.data.datasets[0].data = data.map(val => Math.max(0, val));
+                    costChart.update();
+                }
+            }
+
+            const inputs = [sellingPriceEl, exchangeRateEl, productCostEl, firstLegShippingEl, referralFeeEl, fbaFeeEl, adCostEl, otherCostEl];
+            inputs.forEach(input => input.addEventListener('input', calculateProfit));
+            
+            resetButton.addEventListener('click', () => {
+                form.reset();
+                exchangeRateEl.value = '7.25';
+                referralFeeEl.value = '15';
+                calculateProfit();
+            });
+
+            createChart();
+            calculateProfit();
+        });
+    </script>
+
+</body>
+</html>
+
